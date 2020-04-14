@@ -48,15 +48,15 @@ logApi.logType = {
   },
   LOGGED_IN: {
     value: 25,
-    text: '用户登陆'
+    text: '用户登录'
   },
   LOGGED_OUT: {
     value: 30,
-    text: '注销登陆'
+    text: '注销登录'
   },
   LOGIN_FAILED: {
     value: 35,
-    text: '登陆失败'
+    text: '登录失败'
   },
   PASSWORD_UPDATED: {
     value: 40,
@@ -71,12 +71,20 @@ logApi.logType = {
     text: '页面发布'
   },
   SHEET_EDITED: {
-    value: 50,
+    value: 55,
     text: '页面修改'
   },
   SHEET_DELETED: {
-    value: 50,
+    value: 60,
     text: '页面删除'
+  },
+  MFA_UPDATED: {
+    value: 65,
+    text: '两步验证'
+  },
+  LOGGED_PRE_CHECK: {
+    value: 70,
+    text: '登陆验证'
   }
 }
 

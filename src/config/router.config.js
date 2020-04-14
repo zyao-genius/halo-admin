@@ -76,21 +76,21 @@ export const asyncRouterMap = [
             path: '/sheets/links',
             name: 'LinkList',
             hidden: true,
-            component: () => import('@/views/sheet/internal/LinkList'),
+            component: () => import('@/views/sheet/independent/LinkList'),
             meta: { title: '友情链接', hiddenHeaderContent: false }
           },
           {
             path: '/sheets/photos',
             name: 'PhotoList',
             hidden: true,
-            component: () => import('@/views/sheet/internal/PhotoList'),
+            component: () => import('@/views/sheet/independent/PhotoList'),
             meta: { title: '图库', hiddenHeaderContent: false }
           },
           {
             path: '/sheets/journals',
             name: 'JournalList',
             hidden: true,
-            component: () => import('@/views/sheet/internal/JournalList'),
+            component: () => import('@/views/sheet/independent/JournalList'),
             meta: { title: '日志', hiddenHeaderContent: false }
           }
         ]
@@ -175,8 +175,8 @@ export const asyncRouterMap = [
           },
           {
             path: '/system/options',
-            name: 'OptionForm',
-            component: () => import('@/views/system/OptionForm'),
+            name: 'SystemOptions',
+            component: () => import('@/views/system/SystemOptions'),
             meta: { title: '博客设置', hiddenHeaderContent: false }
           },
           {
@@ -185,6 +185,13 @@ export const asyncRouterMap = [
             component: () => import('@/views/system/ToolList'),
             meta: { title: '小工具', hiddenHeaderContent: false }
           },
+          // {
+          //   path: '/system/tools/staticpages',
+          //   name: 'StaticPagesManage',
+          //   hidden: true,
+          //   component: () => import('@/views/system/staticpages/StaticPagesManage'),
+          //   meta: { title: '静态部署', hiddenHeaderContent: false }
+          // },
           {
             path: '/system/about',
             name: 'About',

@@ -2,7 +2,7 @@
   <div>
     <a-drawer
       title="附件库"
-      :width="isMobile()?'100%':'460'"
+      :width="isMobile()?'100%':'480'"
       closable
       :visible="visible"
       destroyOnClose
@@ -120,7 +120,8 @@ export default {
       pagination: {
         page: 1,
         size: 12,
-        sort: ''
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,

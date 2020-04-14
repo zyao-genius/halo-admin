@@ -20,7 +20,7 @@
                   :md="6"
                   :sm="24"
                 >
-                  <a-form-item label="关键词">
+                  <a-form-item label="关键词：">
                     <a-input
                       v-model="queryParam.keyword"
                       @keyup.enter="handleQuery()"
@@ -31,7 +31,7 @@
                   :md="6"
                   :sm="24"
                 >
-                  <a-form-item label="存储位置">
+                  <a-form-item label="存储位置：">
                     <a-select
                       v-model="queryParam.attachmentType"
                       @change="handleQuery()"
@@ -50,7 +50,7 @@
                   :md="6"
                   :sm="24"
                 >
-                  <a-form-item label="文件类型">
+                  <a-form-item label="文件类型：">
                     <a-select
                       v-model="queryParam.mediaType"
                       @change="handleQuery()"
@@ -189,7 +189,7 @@
       v-if="selectAttachment"
       :attachment="selectAttachment"
       :addToPhoto="true"
-      @delete="() => this.loadAttachments()"
+      @delete="loadAttachments()"
     />
   </page-view>
 </template>
@@ -223,7 +223,8 @@ export default {
       pagination: {
         page: 1,
         size: 18,
-        sort: null
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,
@@ -371,7 +372,7 @@ export default {
     handleDeleteAttachmentInBatch() {
       var that = this
       if (this.batchSelectedAttachments.length <= 0) {
-        this.$message.success('你还未选择任何附件，请至少选择一个！')
+        this.$message.warn('你还未选择任何附件，请至少选择一个！')
         return
       }
       this.$confirm({

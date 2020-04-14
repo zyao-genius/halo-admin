@@ -12,9 +12,9 @@ sheetApi.list = params => {
   })
 }
 
-sheetApi.listInternal = () => {
+sheetApi.listIndependent = () => {
   return service({
-    url: `${baseUrl}/internal`,
+    url: `${baseUrl}/independent`,
     method: 'get'
   })
 }
@@ -44,6 +44,16 @@ sheetApi.update = (sheetId, sheetToUpdate, autoSave) => {
     data: sheetToUpdate,
     params: {
       autoSave: autoSave
+    }
+  })
+}
+
+sheetApi.updateDraft = (sheetId, content) => {
+  return service({
+    url: `${baseUrl}/${sheetId}/status/draft/content`,
+    method: 'put',
+    data: {
+      content: content
     }
   })
 }

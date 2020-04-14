@@ -71,41 +71,22 @@
                     <a-menu-item
                       :key="1"
                       :disabled="item.activated"
+                      @click="handleConfirmDelete(item)"
                     >
-                      <a-popconfirm
-                        v-if="!item.activated"
-                        :title="'确定删除【' + item.name + '】主题？'"
-                        @confirm="handleDeleteTheme(item.id)"
-                        okText="确定"
-                        cancelText="取消"
-                      >
-                        <a-icon
-                          type="delete"
-                          style="margin-right:3px"
-                        />删除
-                      </a-popconfirm>
-                      <span v-else>
-                        <a-icon
-                          type="delete"
-                          style="margin-right:3px"
-                        />删除
-                      </span>
+                      <a-icon
+                        type="delete"
+                        style="margin-right:3px"
+                      />删除
                     </a-menu-item>
                     <a-menu-item
                       :key="2"
                       v-if="item.repo"
+                      @click="handleConfirmUpdate(item)"
                     >
-                      <a-popconfirm
-                        :title="'确定更新【' + item.name + '】主题？'"
-                        @confirm="handleUpdateTheme(item.id)"
-                        okText="确定"
-                        cancelText="取消"
-                      >
-                        <a-icon
-                          type="cloud"
-                          style="margin-right:3px"
-                        />在线更新
-                      </a-popconfirm>
+                      <a-icon
+                        type="cloud"
+                        style="margin-right:3px"
+                      />在线更新
                     </a-menu-item>
                     <a-menu-item
                       :key="3"
@@ -147,7 +128,7 @@
             <a
               rel="noopener noreferrer"
               href="javascript:void(0);"
-              @click="()=>this.uploadThemeVisible = true"
+              @click="uploadThemeVisible = true"
             >安装主题</a>
           </a-menu-item>
           <a-menu-item>
@@ -171,8 +152,34 @@
       <div class="custom-tab-wrapper">
         <a-tabs>
           <a-tab-pane
-            tab="远程拉取"
+            tab="本地上传"
             key="1"
+          >
+            <FilePondUpload
+              ref="upload"
+              name="file"
+              accept="application/zip"
+              label="点击选择主题包或将主题包拖拽到此处<br>仅支持 ZIP 格式的文件"
+              :uploadHandler="uploadHandler"
+              @success="handleUploadSuccess"
+            >
+            </FilePondUpload>
+            <a-alert
+              type="info"
+              closable
+            >
+              <template slot="message">
+                更多主题请访问：
+                <a
+                  target="_blank"
+                  href="https://halo.run/p/themes"
+                >https://halo.run/p/themes</a>
+              </template>
+            </a-alert>
+          </a-tab-pane>
+          <a-tab-pane
+            tab="远程拉取"
+            key="2"
           >
             <a-form layout="vertical">
               <a-form-item label="远程地址：">
@@ -191,28 +198,14 @@
               closable
             >
               <template slot="message">
-                远程地址即主题仓库地址，如：https://github.com/halo-dev/halo-theme-quick-starter。
+                远程地址即主题仓库地址，使用这种方式安装的一般为开发版本，请谨慎使用。
                 <br>更多主题请访问：
                 <a
                   target="_blank"
-                  href="https://halo.run/theme"
-                >https://halo.run/theme</a>
+                  href="https://halo.run/p/themes"
+                >https://halo.run/p/themes</a>
               </template>
             </a-alert>
-          </a-tab-pane>
-          <a-tab-pane
-            tab="本地上传"
-            key="2"
-          >
-            <FilePondUpload
-              ref="upload"
-              name="file"
-              accept="application/zip"
-              label="点击选择主题包或将主题包拖拽到此处<br>仅支持 ZIP 格式的文件"
-              :uploadHandler="uploadHandler"
-              @success="handleUploadSuccess"
-            >
-            </FilePondUpload>
           </a-tab-pane>
         </a-tabs>
       </div>
@@ -310,8 +303,8 @@ export default {
           hide()
         })
     },
-    handleDeleteTheme(key) {
-      themeApi.delete(key).then(response => {
+    handleDeleteTheme(themeId) {
+      themeApi.delete(themeId).then(response => {
         this.$message.success('删除成功！')
         this.loadThemes()
       })
@@ -364,6 +357,30 @@ export default {
     handleShowThemeSetting(theme) {
       this.selectedTheme = theme
       this.themeSettingVisible = true
+    },
+    handleConfirmDelete(item) {
+      const that = this
+      this.$confirm({
+        title: '提示',
+        maskClosable: true,
+        content: '确定删除【' + item.name + '】主题？',
+        onOk() {
+          that.handleDeleteTheme(item.id)
+        },
+        onCancel() {}
+      })
+    },
+    handleConfirmUpdate(item) {
+      const that = this
+      this.$confirm({
+        title: '提示',
+        maskClosable: true,
+        content: '确定更新【' + item.name + '】主题？',
+        onOk() {
+          that.handleUpdateTheme(item.id)
+        },
+        onCancel() {}
+      })
     },
     onThemeUploadClose() {
       if (this.uploadThemeVisible) {

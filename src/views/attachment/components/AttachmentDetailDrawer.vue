@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     title="附件详情"
-    :width="isMobile()?'100%':'460'"
+    :width="isMobile()?'100%':'480'"
     closable
     :visible="visible"
     destroyOnClose
@@ -269,11 +269,11 @@ export default {
       const text = `${encodeURI(this.attachment.path)}`
       this.$copyText(text)
         .then(message => {
-          console.log('copy', message)
+          this.$log.debug('copy', message)
           this.$message.success('复制成功！')
         })
         .catch(err => {
-          console.log('copy.err', err)
+          this.$log.debug('copy.err', err)
           this.$message.error('复制失败！')
         })
     },
@@ -281,11 +281,11 @@ export default {
       const text = `![${this.attachment.name}](${encodeURI(this.attachment.path)})`
       this.$copyText(text)
         .then(message => {
-          console.log('copy', message)
+          this.$log.debug('copy', message)
           this.$message.success('复制成功！')
         })
         .catch(err => {
-          console.log('copy.err', err)
+          this.$log.debug('copy.err', err)
           this.$message.error('复制失败！')
         })
     },

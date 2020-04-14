@@ -11,7 +11,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="关键词">
+              <a-form-item label="关键词：">
                 <a-input
                   v-model="queryParam.keyword"
                   @keyup.enter="handleQuery()"
@@ -22,7 +22,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="评论状态">
+              <a-form-item label="评论状态：">
                 <a-select
                   v-model="queryParam.status"
                   placeholder="请选择评论状态"
@@ -187,12 +187,12 @@
                 发表在
                 <a
                   v-if="type==='posts'"
-                  :href="options.blog_url+'/archives/'+item.post.url"
+                  :href="item.post.fullPath"
                   target="_blank"
                 >《{{ item.post.title }}》</a>
                 <a
                   v-if="type === 'sheets'"
-                  :href="options.blog_url+'/s/'+item.sheet.url"
+                  :href="item.sheet.fullPath"
                   target="_blank"
                 >《{{ item.sheet.title }}》</a>
               </template>
@@ -245,6 +245,7 @@
           :dataSource="formattedComments"
           :loading="loading"
           :pagination="false"
+          scrollToFirstRowOnChange
         >
           <template
             slot="author"
@@ -282,14 +283,14 @@
             v-if="type==='posts'"
             slot="post"
             slot-scope="post"
-            :href="options.blog_url+'/archives/'+post.url"
+            :href="post.fullPath"
             target="_blank"
           >{{ post.title }}</a>
           <a
             v-if="type === 'sheets'"
             slot="sheet"
             slot-scope="sheet"
-            :href="options.blog_url+'/s/'+sheet.url"
+            :href="sheet.fullPath"
             target="_blank"
           >{{ sheet.title }}</a>
           <span
@@ -413,7 +414,7 @@
         <a-form-item>
           <a-input
             type="textarea"
-            :autosize="{ minRows: 8 }"
+            :autoSize="{ minRows: 8 }"
             v-model="replyComment.content"
           />
         </a-form-item>
@@ -429,7 +430,6 @@
 </template>
 <script>
 import { mixin, mixinDevice } from '@/utils/mixin.js'
-import { mapGetters } from 'vuex'
 import CommentDetail from './CommentDetail'
 import marked from 'marked'
 import commentApi from '@/api/comment'
@@ -438,6 +438,7 @@ const postColumns = [
     title: '昵称',
     dataIndex: 'author',
     width: '150px',
+    ellipsis: true,
     scopedSlots: { customRender: 'author' }
   },
   {
@@ -456,6 +457,7 @@ const postColumns = [
     title: '评论文章',
     dataIndex: 'post',
     width: '200px',
+    ellipsis: true,
     scopedSlots: { customRender: 'post' }
   },
   {
@@ -476,6 +478,7 @@ const sheetColumns = [
     title: '昵称',
     dataIndex: 'author',
     width: '150px',
+    ellipsis: true,
     scopedSlots: { customRender: 'author' }
   },
   {
@@ -494,12 +497,13 @@ const sheetColumns = [
     title: '评论页面',
     dataIndex: 'sheet',
     width: '200px',
+    ellipsis: true,
     scopedSlots: { customRender: 'sheet' }
   },
   {
     title: '日期',
     dataIndex: 'createTime',
-    width: '150px',
+    width: '170px',
     scopedSlots: { customRender: 'createTime' }
   },
   {
@@ -532,7 +536,8 @@ export default {
       pagination: {
         page: 1,
         size: 10,
-        sort: null
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,
@@ -561,8 +566,7 @@ export default {
         comment.content = marked(comment.content)
         return comment
       })
-    },
-    ...mapGetters(['options'])
+    }
   },
   methods: {
     loadComments() {
@@ -636,7 +640,7 @@ export default {
     },
     handleEditStatusMore(status) {
       if (this.selectedRowKeys.length <= 0) {
-        this.$message.success('请至少选择一项！')
+        this.$message.info('请至少选择一项！')
         return
       }
       commentApi.updateStatusInBatch(this.type, this.selectedRowKeys, status).then(response => {
@@ -647,7 +651,7 @@ export default {
     },
     handleDeleteMore() {
       if (this.selectedRowKeys.length <= 0) {
-        this.$message.success('请至少选择一项！')
+        this.$message.info('请至少选择一项！')
         return
       }
       commentApi.deleteInBatch(this.type, this.selectedRowKeys).then(response => {

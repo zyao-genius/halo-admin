@@ -41,14 +41,14 @@ import {
   Tag,
   TimePicker,
   Tooltip,
-  Upload,
   Drawer,
   Skeleton,
   Comment,
   ConfigProvider,
   Timeline,
   Steps,
-  Empty
+  Empty,
+  Result
 } from 'ant-design-vue'
 
 Vue.use(Anchor)
@@ -91,13 +91,13 @@ Vue.use(Tabs)
 Vue.use(Tag)
 Vue.use(TimePicker)
 Vue.use(Tooltip)
-Vue.use(Upload)
 Vue.use(Skeleton)
 Vue.use(Comment)
 Vue.use(ConfigProvider)
 Vue.use(Timeline)
 Vue.use(Steps)
 Vue.use(Empty)
+Vue.use(Result)
 
 Vue.prototype.$message = message
 Vue.prototype.$notification = notification

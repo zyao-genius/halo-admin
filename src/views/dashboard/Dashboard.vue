@@ -10,15 +10,15 @@
         :style="{ marginBottom: '12px' }"
       >
         <analysis-card
-          :loading="countsLoading"
+          :loading="statisticsLoading"
           title="文章"
           :number="statisticsData.postCount"
         >
           <router-link
-            :to="{ name:'PostList' }"
+            :to="{ name:'PostEdit' }"
             slot="action"
           >
-            <a-icon type="link" />
+            <a-icon type="plus" />
           </router-link>
         </analysis-card>
       </a-col>
@@ -31,7 +31,7 @@
         :style="{ marginBottom: '12px' }"
       >
         <analysis-card
-          :loading="countsLoading"
+          :loading="statisticsLoading"
           title="评论"
           :number="statisticsData.commentCount"
         >
@@ -39,7 +39,7 @@
             :to="{ name:'Comments' }"
             slot="action"
           >
-            <a-icon type="link" />
+            <a-icon type="unordered-list" />
           </router-link>
         </analysis-card>
       </a-col>
@@ -52,18 +52,13 @@
         :style="{ marginBottom: '12px' }"
       >
         <analysis-card
-          :loading="countsLoading"
-          title="总访问"
+          :loading="statisticsLoading"
+          title="阅读量"
           :number="statisticsData.visitCount"
         >
           <a-tooltip slot="action">
             <template slot="title">
-              文章总访问共
-              <countTo
-                :startVal="0"
-                :endVal="statisticsData.visitCount"
-                :duration="3000"
-              ></countTo>次
+              文章阅读共 {{ statisticsData.visitCount }} 次
             </template>
             <a href="javascript:void(0);">
               <a-icon type="info-circle-o" />
@@ -80,7 +75,7 @@
         :style="{ marginBottom: '12px' }"
       >
         <analysis-card
-          :loading="countsLoading"
+          :loading="statisticsLoading"
           title="建立天数"
           :number="statisticsData.establishDays"
         >
@@ -114,7 +109,7 @@
                 key="1"
                 tab="最近文章"
               >
-                <a-list :dataSource="postData">
+                <a-list :dataSource="latestPosts">
                   <a-list-item
                     slot="renderItem"
                     slot-scope="item, index"
@@ -124,7 +119,7 @@
                       <a
                         v-if="item.status=='PUBLISHED' || item.status == 'INTIMATE'"
                         slot="title"
-                        :href="options.blog_url+'/archives/'+item.url"
+                        :href="item.fullPath"
                         target="_blank"
                       >{{ item.title }}</a>
                       <a
@@ -134,11 +129,12 @@
                         @click="handlePostPreview(item.id)"
                       >{{ item.title }}</a>
                       <a
-                        v-else
+                        v-else-if="item.status=='RECYCLE'"
+                        slot="title"
                         href="javascript:void(0);"
                         disabled
                       >
-                        {{ text }}
+                        {{ item.title }}
                       </a>
                     </a-list-item-meta>
                     <div>{{ item.createTime | timeAgo }}</div>
@@ -202,7 +198,7 @@
             <a-form-item>
               <a-input
                 type="textarea"
-                :autosize="{ minRows: 8 }"
+                :autoSize="{ minRows: 8 }"
                 v-model="journal.sourceContent"
                 placeholder="写点什么吧..."
               />
@@ -237,7 +233,7 @@
             >
               <a
                 href="javascript:void(0);"
-                @click="handleShowLogDrawer"
+                @click="logListDrawerVisible = true"
               >
                 <a-icon type="ellipsis" />
               </a>
@@ -252,80 +248,28 @@
               <a-list-item-meta :description="item.createTime | timeAgo">
                 <span slot="title">{{ item.type }}</span>
               </a-list-item-meta>
-              <div>{{ item.content }}</div>
+              <ellipsis
+                :length="35"
+                tooltip
+              >{{ item.content }}</ellipsis>
             </a-list-item>
           </a-list>
         </a-card>
       </a-col>
     </a-row>
 
-    <a-drawer
-      title="操作日志"
-      :width="isMobile()?'100%':'460'"
-      closable
-      :visible="logDrawerVisible"
-      destroyOnClose
-      @close="()=>this.logDrawerVisible = false"
-    >
-      <a-row
-        type="flex"
-        align="middle"
-      >
-        <a-col :span="24">
-          <a-skeleton
-            active
-            :loading="logsLoading"
-            :paragraph="{rows: 18}"
-          >
-            <a-list :dataSource="formattedLogsDatas">
-              <a-list-item
-                slot="renderItem"
-                slot-scope="item, index"
-                :key="index"
-              >
-                <a-list-item-meta :description="item.createTime | timeAgo">
-                  <span slot="title">{{ item.type }}</span>
-                </a-list-item-meta>
-                <div>{{ item.content }}</div>
-              </a-list-item>
-            </a-list>
-          </a-skeleton>
-
-          <div class="page-wrapper">
-            <a-pagination
-              class="pagination"
-              :current="logPagination.page"
-              :total="logPagination.total"
-              :defaultPageSize="logPagination.size"
-              :pageSizeOptions="['50', '100','150','200']"
-              showSizeChanger
-              @showSizeChange="handlePaginationChange"
-              @change="handlePaginationChange"
-            />
-          </div>
-        </a-col>
-      </a-row>
-      <a-divider class="divider-transparent" />
-      <div class="bottom-control">
-        <a-popconfirm
-          title="你确定要清空所有操作日志？"
-          okText="确定"
-          @confirm="handleClearLogs"
-          cancelText="取消"
-        >
-          <a-button type="danger">清空操作日志</a-button>
-        </a-popconfirm>
-      </div>
-    </a-drawer>
+    <LogListDrawer
+      :visible="logListDrawerVisible"
+      @close="handleLogListClose"
+    />
   </page-view>
 </template>
 
 <script>
-import { mixin, mixinDevice } from '@/utils/mixin.js'
-import { mapGetters } from 'vuex'
 import { PageView } from '@/layouts'
 import AnalysisCard from './components/AnalysisCard'
 import RecentCommentTab from './components/RecentCommentTab'
+import LogListDrawer from './components/LogListDrawer'
 import countTo from 'vue-count-to'
 
 import postApi from '@/api/post'
@@ -334,40 +278,26 @@ import statisticsApi from '@/api/statistics'
 import journalApi from '@/api/journal'
 export default {
   name: 'Dashboard',
-  mixins: [mixin, mixinDevice],
   components: {
     PageView,
     AnalysisCard,
     RecentCommentTab,
-    countTo
+    countTo,
+    LogListDrawer
   },
   data() {
     return {
-      startVal: 0,
       logType: logApi.logType,
       activityLoading: true,
       writeLoading: true,
       logLoading: true,
-      logsLoading: true,
-      countsLoading: true,
-      logDrawerVisible: false,
-      postData: [],
-      logData: [],
+      statisticsLoading: true,
+      logListDrawerVisible: false,
+      latestPosts: [],
+      latestLogs: [],
       statisticsData: {},
       journal: {
-        content: '',
-        photos: []
-      },
-      logs: [],
-      logPagination: {
-        page: 1,
-        size: 50,
-        sort: null
-      },
-      logQueryParam: {
-        page: 0,
-        size: 50,
-        sort: null
+        content: ''
       },
       interval: null
     }
@@ -378,30 +308,16 @@ export default {
     this.listLatestLogs()
   },
   computed: {
-    formattedPostData() {
-      return Object.assign([], this.postData).map(post => {
-        // Format the status
-        post.status = postApi.postStatus[post.status]
-        return post
-      })
-    },
     formattedLogDatas() {
-      return this.logData.map(log => {
+      return this.latestLogs.map(log => {
         log.type = this.logType[log.type].text
         return log
       })
-    },
-    formattedLogsDatas() {
-      return this.logs.map(log => {
-        log.type = this.logType[log.type].text
-        return log
-      })
-    },
-    ...mapGetters(['options'])
+    }
   },
   destroyed: function() {
-    if (this.logDrawerVisible) {
-      this.logDrawerVisible = false
+    if (this.logListDrawerVisible) {
+      this.logListDrawerVisible = false
     }
   },
   beforeRouteEnter(to, from, next) {
@@ -417,29 +333,29 @@ export default {
       this.interval = null
       this.$log.debug('Cleared interval')
     }
-    if (this.logDrawerVisible) {
-      this.logDrawerVisible = false
+    if (this.logListDrawerVisible) {
+      this.logListDrawerVisible = false
     }
     next()
   },
   methods: {
-    listLatestPosts() {
+    async listLatestPosts() {
       postApi.listLatest(5).then(response => {
-        this.postData = response.data.data
+        this.latestPosts = response.data.data
         this.activityLoading = false
       })
     },
-    listLatestLogs() {
+    async listLatestLogs() {
       logApi.listLatest(5).then(response => {
-        this.logData = response.data.data
+        this.latestLogs = response.data.data
         this.logLoading = false
         this.writeLoading = false
       })
     },
-    getStatistics() {
+    async getStatistics() {
       statisticsApi.statistics().then(response => {
         this.statisticsData = response.data.data
-        this.countsLoading = false
+        this.statisticsLoading = false
       })
     },
     handleEditPostClick(post) {
@@ -458,40 +374,13 @@ export default {
         this.journal = {}
       })
     },
-    handleShowLogDrawer() {
-      this.logDrawerVisible = true
-      this.loadLogs()
-    },
-    loadLogs() {
-      this.logsLoading = true
-      setTimeout(() => {
-        this.logsLoading = false
-      }, 500)
-      this.logQueryParam.page = this.logPagination.page - 1
-      this.logQueryParam.size = this.logPagination.size
-      this.logQueryParam.sort = this.logPagination.sort
-      logApi.pageBy(this.logQueryParam).then(response => {
-        this.logs = response.data.data.content
-        this.logPagination.total = response.data.data.total
-      })
-    },
-    handleClearLogs() {
-      logApi.clear().then(response => {
-        this.$message.success('清除成功！')
-        this.loadLogs()
-        this.listLatestLogs()
-      })
-    },
     handlePostPreview(postId) {
       postApi.preview(postId).then(response => {
         window.open(response.data, '_blank')
       })
     },
-    handlePaginationChange(page, pageSize) {
-      this.$log.debug(`Current: ${page}, PageSize: ${pageSize}`)
-      this.logPagination.page = page
-      this.logPagination.size = pageSize
-      this.loadLogs()
+    handleLogListClose() {
+      this.logListDrawerVisible = false
     }
   }
 }

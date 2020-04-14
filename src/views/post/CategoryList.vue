@@ -24,7 +24,7 @@
               label="别名："
               help="* 一般为单个分类页面的标识，最好为英文"
             >
-              <a-input v-model="categoryToCreate.slugName" />
+              <a-input v-model="categoryToCreate.slug" />
             </a-form-item>
             <a-form-item label="上级目录：">
               <category-select-tree
@@ -33,13 +33,27 @@
               />
             </a-form-item>
             <a-form-item
+              label="封面图："
+              help="* 在分类页面可展示，需要主题支持"
+            >
+              <a-input v-model="categoryToCreate.thumbnail">
+                <a
+                  href="javascript:void(0);"
+                  slot="addonAfter"
+                  @click="thumbnailDrawerVisible = true"
+                >
+                  <a-icon type="picture" />
+                </a>
+              </a-input>
+            </a-form-item>
+            <a-form-item
               label="描述："
               help="* 分类描述，部分主题可显示"
             >
               <a-input
                 type="textarea"
                 v-model="categoryToCreate.description"
-                :autosize="{ minRows: 3 }"
+                :autoSize="{ minRows: 3 }"
               />
             </a-form-item>
             <a-form-item>
@@ -133,7 +147,7 @@
               </template>
               <a-list-item-meta>
                 <template slot="description">
-                  {{ item.slugName }}
+                  {{ item.slug }}
                 </template>
                 <span
                   slot="title"
@@ -155,15 +169,21 @@
             :dataSource="categories"
             :rowKey="record => record.id"
             :loading="loading"
+            :scrollToFirstRowOnChange="true"
           >
-            <ellipsis
-              :length="30"
-              tooltip
-              slot="name"
-              slot-scope="text"
+            <span
+              slot="postCount"
+              slot-scope="text,record"
+              style="cursor: pointer;"
+              @click="handleQueryCategoryPosts(record)"
             >
-              {{ text }}
-            </ellipsis>
+              <a-badge
+                :count="record.postCount"
+                :numberStyle="{backgroundColor: '#00e0ff'} "
+                :showZero="true"
+                :overflowCount="9999"
+              />
+            </span>
             <span
               slot="action"
               slot-scope="text, record"
@@ -206,31 +226,42 @@
         </a-card>
       </a-col>
     </a-row>
+
+    <AttachmentSelectDrawer
+      v-model="thumbnailDrawerVisible"
+      @listenToSelect="handleSelectThumbnail"
+      title="选择封面图"
+    />
   </div>
 </template>
 
 <script>
 import { mixin, mixinDevice } from '@/utils/mixin.js'
 import CategorySelectTree from './components/CategorySelectTree'
+import AttachmentSelectDrawer from '../attachment/components/AttachmentSelectDrawer'
 import categoryApi from '@/api/category'
 import menuApi from '@/api/menu'
 
 const columns = [
   {
     title: '名称',
+    ellipsis: true,
     dataIndex: 'name'
   },
   {
     title: '别名',
-    dataIndex: 'slugName'
+    ellipsis: true,
+    dataIndex: 'slug'
   },
   {
     title: '描述',
+    ellipsis: true,
     dataIndex: 'description'
   },
   {
     title: '文章数',
-    dataIndex: 'postCount'
+    dataIndex: 'postCount',
+    scopedSlots: { customRender: 'postCount' }
   },
   {
     title: '操作',
@@ -239,13 +270,14 @@ const columns = [
   }
 ]
 export default {
-  components: { CategorySelectTree },
+  components: { CategorySelectTree, AttachmentSelectDrawer },
   mixins: [mixin, mixinDevice],
   data() {
     return {
       formType: 'create',
       categories: [],
       categoryToCreate: {},
+      thumbnailDrawerVisible: false,
       menu: {},
       loading: false,
       columns
@@ -311,11 +343,18 @@ export default {
     },
     handleCategoryToMenu(category) {
       this.menu['name'] = category.name
-      this.menu['url'] = `/categories/${category.slugName}`
+      this.menu['url'] = `${category.fullPath}`
       menuApi.create(this.menu).then(response => {
         this.$message.success('添加到菜单成功！')
         this.menu = {}
       })
+    },
+    handleSelectThumbnail(data) {
+      this.$set(this.categoryToCreate, 'thumbnail', encodeURI(data.path))
+      this.thumbnailDrawerVisible = false
+    },
+    handleQueryCategoryPosts(category) {
+      this.$router.push({ name: 'PostList', query: { categoryId: category.id } })
     }
   }
 }

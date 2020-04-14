@@ -8,7 +8,12 @@ const keys = [
   'developer_mode',
   'attachment_upload_image_preview_enable',
   'attachment_upload_max_parallel_uploads',
-  'attachment_upload_max_files'
+  'attachment_upload_max_files',
+  'sheet_prefix',
+  'post_permalink_type',
+  'archives_prefix',
+  'path_suffix',
+  'default_editor'
 ]
 const option = {
   state: {
@@ -26,7 +31,7 @@ const option = {
     }) {
       return new Promise((resolve, reject) => {
         optionApi
-          .listAll(keys)
+          .listAllByKeys(keys)
           .then(response => {
             commit('SET_OPTIONS', response.data.data)
             resolve(response)

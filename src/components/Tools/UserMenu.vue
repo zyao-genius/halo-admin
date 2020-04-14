@@ -15,11 +15,16 @@
     </a>
     <a
       href="javascript:void(0)"
-      @click="showOptionModal"
+      @click="handleShowLayoutSetting"
     >
-      <span class="action">
-        <a-icon type="setting" />
-      </span>
+      <a-tooltip
+        placement="bottom"
+        title="后台布局设置"
+      >
+        <span class="action">
+          <a-icon type="setting" />
+        </span>
+      </a-tooltip>
     </a>
     <header-comment class="action" />
     <a-dropdown>
@@ -55,34 +60,23 @@
         </a-menu-item>
       </a-menu>
     </a-dropdown>
-    <setting-drawer ref="drawer"></setting-drawer>
   </div>
 </template>
 
 <script>
 import HeaderComment from './HeaderComment'
-import SettingDrawer from '@/components/SettingDrawer/SettingDrawer'
 import { mapActions, mapGetters } from 'vuex'
 
 export default {
   name: 'UserMenu',
   components: {
-    HeaderComment,
-    SettingDrawer
-  },
-  data() {
-    return {
-      optionVisible: true
-    }
-  },
-  mounted() {
-    this.optionVisible = this.$refs.drawer.visible
+    HeaderComment
   },
   computed: {
     ...mapGetters(['user', 'options'])
   },
   methods: {
-    ...mapActions(['logout']),
+    ...mapActions(['logout', 'ToggleLayoutSetting']),
     handleLogout() {
       const that = this
 
@@ -105,9 +99,8 @@ export default {
         onCancel() {}
       })
     },
-    showOptionModal() {
-      this.optionVisible = this.$refs.drawer.visible
-      this.$refs.drawer.toggle()
+    handleShowLayoutSetting() {
+      this.ToggleLayoutSetting(true)
     }
   }
 }

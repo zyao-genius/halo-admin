@@ -22,7 +22,7 @@
               <div class="avatar">
                 <img
                   :src="user.avatar || '//cn.gravatar.com/avatar/?s=256&d=mm'"
-                  @click="()=>this.attachmentDrawerVisible = true"
+                  @click="attachmentDrawerVisible = true"
                 >
               </div>
             </a-tooltip>
@@ -54,7 +54,7 @@
               <a-list-item>累计创建了 {{ statistics.tagCount || 0 }} 个标签。</a-list-item>
               <a-list-item>累计获得了 {{ statistics.commentCount || 0 }} 条评论。</a-list-item>
               <a-list-item>累计添加了 {{ statistics.linkCount || 0 }} 个友链。</a-list-item>
-              <a-list-item>文章总访问 {{ statistics.visitCount || 0 }} 次。</a-list-item>
+              <a-list-item>文章总阅读 {{ statistics.visitCount || 0 }} 次。</a-list-item>
               <a-list-item></a-list-item>
             </a-list>
           </div>
@@ -88,7 +88,7 @@
                   </a-form-item>
                   <a-form-item label="个人说明：">
                     <a-input
-                      :autosize="{ minRows: 5 }"
+                      :autoSize="{ minRows: 5 }"
                       type="textarea"
                       v-model="user.description"
                     />
@@ -107,13 +107,22 @@
                 </span>
                 <a-form layout="vertical">
                   <a-form-item label="原密码：">
-                    <a-input-password v-model="passwordParam.oldPassword" />
+                    <a-input-password
+                      v-model="passwordParam.oldPassword"
+                      autocomplete="new-password"
+                    />
                   </a-form-item>
                   <a-form-item label="新密码：">
-                    <a-input-password v-model="passwordParam.newPassword" />
+                    <a-input-password
+                      v-model="passwordParam.newPassword"
+                      autocomplete="new-password"
+                    />
                   </a-form-item>
                   <a-form-item label="确认密码：">
-                    <a-input-password v-model="passwordParam.confirmPassword" />
+                    <a-input-password
+                      v-model="passwordParam.confirmPassword"
+                      autocomplete="new-password"
+                    />
                   </a-form-item>
                   <a-form-item>
                     <a-button
@@ -123,6 +132,82 @@
                     >确认更改</a-button>
                   </a-form-item>
                 </a-form>
+              </a-tab-pane>
+              <a-tab-pane key="3">
+                <span slot="tab">
+                  <a-icon type="safety-certificate" />两步验证
+                </span>
+                <a-form-item label="两步验证：">
+                  <a-switch
+                    v-model="mfaParam.switch.checked"
+                    :loading="mfaParam.switch.loading"
+                    @change="handleMFASwitch"
+                  />
+                </a-form-item>
+                <a-form-item label="两步验证应用：">
+                  <a-list itemLayout="horizontal">
+                    <a-list-item>
+                      <b>Authy</b> 功能丰富 专为两步验证码
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://authy.com/download/"
+                      >
+                        iOS/Android/Windows/Mac/Linux
+                        <a-icon type="link" />
+                      </a>
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://chrome.google.com/webstore/detail/authy/gaedmjdfmmahhbjefcbgaolhhanlaolb?hl=cn"
+                      >
+                        Chrome 扩展
+                        <a-icon type="link" />
+                      </a>
+                    </a-list-item>
+                    <a-list-item>
+                      <b>Google Authenticator</b> 简单易用，但不支持密钥导出备份
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://apps.apple.com/us/app/google-authenticator/id388497605"
+                      >
+                        iOS
+                        <a-icon type="link" />
+                      </a>
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=cn"
+                      >
+                        Android
+                        <a-icon type="link" />
+                      </a>
+                    </a-list-item>
+                    <a-list-item>
+                      <b>Microsoft Authenticator</b> 使用微软全家桶的推荐
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://www.microsoft.com/zh-cn/account/authenticator"
+                      >
+                        iOS/Android
+                        <a-icon type="link" />
+                      </a>
+                    </a-list-item>
+                    <a-list-item>
+                      <b>1Password</b> 强大安全的密码管理付费应用
+                      <a-divider type="vertical" />
+                      <a
+                        target="_blank"
+                        href="https://1password.com/zh-cn/downloads/"
+                      >
+                        iOS/Android/Windows/Mac/Linux/ChromeOS
+                        <a-icon type="link" />
+                      </a>
+                    </a-list-item>
+                  </a-list>
+                </a-form-item>
               </a-tab-pane>
             </a-tabs>
           </div>
@@ -137,6 +222,61 @@
       title="选择头像"
       isChooseAvatar
     />
+
+    <a-modal
+      :title="mfaParam.modal.title"
+      :visible="mfaParam.modal.visible"
+      @ok="handleSetMFAuth"
+      :confirmLoading="false"
+      @cancel="handleCloseMFAuthModal"
+      :closable="false"
+      icon="safety-certificate"
+      :keyboard="false"
+      :centered="true"
+      :destroyOnClose="true"
+      :width="300"
+    >
+      <a-form v-if="mfaUsed">
+        <a-form-item extra="* 需要验证两步验证码">
+          <a-input
+            placeholder="两步验证码"
+            v-model="mfaParam.authcode"
+            :maxLength="6"
+          >
+            <a-icon
+              slot="prefix"
+              type="safety-certificate"
+              style="color: rgba(0,0,0,.25)"
+            />
+          </a-input>
+        </a-form-item>
+      </a-form>
+
+      <a-form v-else>
+        <a-form-item
+          label="1. 请扫描二维码或导入 key"
+          :extra="`MFAKey:${mfaParam.mfaKey}`"
+        >
+          <img
+            width="100%"
+            :src="mfaParam.qrImage"
+          />
+        </a-form-item>
+        <a-form-item label="2. 验证两步验证码">
+          <a-input
+            placeholder="两步验证码"
+            v-model="mfaParam.authcode"
+            :maxLength="6"
+          >
+            <a-icon
+              slot="prefix"
+              type="safety-certificate"
+              style="color: rgba(0,0,0,.25)"
+            />
+          </a-input>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -162,6 +302,21 @@ export default {
         newPassword: null,
         confirmPassword: null
       },
+      mfaParam: {
+        mfaKey: null,
+        mfaType: 'NONE',
+        mfaUsed: false,
+        authcode: null,
+        qrImage: null,
+        modal: {
+          title: '确认开启两步验证？',
+          visible: false
+        },
+        switch: {
+          loading: false,
+          checked: false
+        }
+      },
       attachment: {}
     }
   },
@@ -169,10 +324,26 @@ export default {
     passwordUpdateButtonDisabled() {
       return !(this.passwordParam.oldPassword && this.passwordParam.newPassword)
     },
-    ...mapGetters(['options'])
+    ...mapGetters(['options']),
+    mfaType() {
+      return this.mfaParam.mfaType
+    },
+    mfaUsed() {
+      return this.mfaParam.mfaUsed
+    }
   },
   created() {
     this.getStatistics()
+  },
+  watch: {
+    mfaType(value) {
+      if (value) {
+        this.mfaParam.mfaUsed = value !== 'NONE'
+      }
+    },
+    mfaUsed(value) {
+      this.mfaParam.switch.checked = value
+    }
   },
   methods: {
     ...mapMutations({ setUser: 'SET_USER' }),
@@ -181,6 +352,7 @@ export default {
         this.user = response.data.data.user
         this.statistics = response.data.data
         this.statisticsLoading = false
+        this.mfaParam.mfaType = this.user.mfaType && this.user.mfaType
       })
     },
     handleUpdatePassword() {
@@ -231,6 +403,49 @@ export default {
     handleSelectGravatar() {
       this.user.avatar = '//cn.gravatar.com/avatar/' + new MD5().update(this.user.email).digest('hex') + '&d=mm'
       this.attachmentDrawerVisible = false
+    },
+    handleMFASwitch(useMFAuth) {
+      // loding
+      this.mfaParam.switch.loading = true
+      if (!useMFAuth && this.mfaUsed) {
+        // true -> false
+        // show cloes MFA modal
+        this.mfaParam.modal.title = '确认关闭两步验证？'
+        this.mfaParam.modal.visible = true
+      } else {
+        // false -> true
+        // show open MFA modal
+        this.mfaParam.modal.title = '确认开启两步验证？'
+        // generate MFAKey and Qr Image
+        userApi.mfaGenerate('TFA_TOTP').then(response => {
+          this.mfaParam.mfaKey = response.data.data.mfaKey
+          this.mfaParam.qrImage = response.data.data.qrImage
+          this.mfaParam.modal.visible = true
+        })
+      }
+    },
+    handleSetMFAuth() {
+      var mfaType = this.mfaUsed ? 'NONE' : 'TFA_TOTP'
+      if (mfaType === 'NONE') {
+        if (!this.mfaParam.authcode) {
+          this.$message.warn('两步验证码不能为空！')
+          return
+        }
+      }
+      userApi.mfaUpdate(mfaType, this.mfaParam.mfaKey, this.mfaParam.authcode).then(response => {
+        this.handleCloseMFAuthModal()
+        this.mfaParam.mfaType = response.data.data.mfaType
+        this.$message.success(this.mfaUsed ? '两步验证已关闭！' : '两步验证已开启,下次登陆生效！')
+      })
+    },
+    handleCloseMFAuthModal() {
+      this.mfaParam.modal.visible = false
+      this.mfaParam.switch.loading = false
+      this.mfaParam.switch.checked = this.mfaUsed
+      // clean
+      this.mfaParam.authcode = null
+      this.mfaParam.qrImage = null
+      this.mfaParam.mfaKey = null
     }
   }
 }

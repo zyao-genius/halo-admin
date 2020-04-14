@@ -11,7 +11,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="关键词">
+              <a-form-item label="关键词：">
                 <a-input
                   v-model="queryParam.keyword"
                   @keyup.enter="handleQuery()"
@@ -22,7 +22,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="类型">
+              <a-form-item label="类型：">
                 <a-select
                   v-model="queryParam.type"
                   placeholder="请选择类型"
@@ -59,7 +59,7 @@
         <a-button
           type="primary"
           icon="plus"
-          @click="()=>this.formVisible=true"
+          @click="formVisible=true"
         >新增</a-button>
       </div>
       <div style="margin-top:15px">
@@ -69,23 +69,8 @@
           :dataSource="formattedDatas"
           :loading="loading"
           :pagination="false"
+          :scrollToFirstRowOnChange="true"
         >
-          <ellipsis
-            :length="50"
-            tooltip
-            slot="key"
-            slot-scope="key"
-          >
-            {{ key }}
-          </ellipsis>
-          <ellipsis
-            :length="50"
-            tooltip
-            slot="value"
-            slot-scope="value"
-          >
-            {{ value }}
-          </ellipsis>
           <span
             slot="type"
             slot-scope="typeProperty"
@@ -172,7 +157,7 @@
         <a-form-item label="Value：">
           <a-input
             type="textarea"
-            :autosize="{ minRows: 5 }"
+            :autoSize="{ minRows: 5 }"
             v-model="optionToStage.value"
           />
         </a-form-item>
@@ -187,11 +172,13 @@ const columns = [
   {
     title: 'Key',
     dataIndex: 'key',
+    ellipsis: true,
     scopedSlots: { customRender: 'key' }
   },
   {
     title: 'Value',
     dataIndex: 'value',
+    ellipsis: true,
     scopedSlots: { customRender: 'value' }
   },
   {
@@ -229,7 +216,8 @@ export default {
       pagination: {
         page: 1,
         size: 10,
-        sort: null
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,

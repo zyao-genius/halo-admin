@@ -11,7 +11,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="关键词">
+              <a-form-item label="关键词：">
                 <a-input
                   v-model="queryParam.keyword"
                   @keyup.enter="handleQuery()"
@@ -22,7 +22,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="文章状态">
+              <a-form-item label="文章状态：">
                 <a-select
                   v-model="queryParam.status"
                   placeholder="请选择文章状态"
@@ -40,7 +40,7 @@
               :md="6"
               :sm="24"
             >
-              <a-form-item label="分类目录">
+              <a-form-item label="分类目录：">
                 <a-select
                   v-model="queryParam.categoryId"
                   placeholder="请选择分类"
@@ -49,7 +49,7 @@
                   <a-select-option
                     v-for="category in categories"
                     :key="category.id"
-                  >{{ category.name }}</a-select-option>
+                  >{{ category.name }} ({{ category.postCount }})</a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -237,7 +237,7 @@
                 />
                 <a
                   v-if="item.status=='PUBLISHED' || item.status == 'INTIMATE'"
-                  :href="options.blog_url+'/archives/'+item.url"
+                  :href="item.fullPath"
                   target="_blank"
                   style="text-decoration: none;"
                 >
@@ -303,11 +303,11 @@
           :dataSource="formattedPosts"
           :loading="postsLoading"
           :pagination="false"
+          :scrollToFirstRowOnChange="true"
         >
           <span
             slot="postTitle"
             slot-scope="text,record"
-            style="max-width: 150px;display: block;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
           >
             <a-icon
               type="pushpin"
@@ -318,7 +318,7 @@
             />
             <a
               v-if="record.status=='PUBLISHED' || record.status == 'INTIMATE'"
-              :href="options.blog_url+'/archives/'+record.url"
+              :href="record.fullPath"
               target="_blank"
               style="text-decoration: none;"
             >
@@ -487,11 +487,9 @@
       :post="selectedPost"
       :tagIds="selectedTagIds"
       :categoryIds="selectedCategoryIds"
-      :postMetas="selectedPostMetas"
+      :metas="selectedMetas"
       :needTitle="true"
       :saveDraftButton="false"
-      :savePublishButton="false"
-      :saveButton="true"
       :visible="postSettingVisible"
       @close="onPostSettingsClose"
       @onRefreshPost="onRefreshPostFromSetting"
@@ -518,7 +516,6 @@ import TargetCommentDrawer from '../comment/components/TargetCommentDrawer'
 import AttachmentSelectDrawer from '../attachment/components/AttachmentSelectDrawer'
 import TagSelect from './components/TagSelect'
 import CategoryTree from './components/CategoryTree'
-import { mapGetters } from 'vuex'
 import categoryApi from '@/api/category'
 import postApi from '@/api/post'
 const columns = [
@@ -526,6 +523,7 @@ const columns = [
     title: '标题',
     dataIndex: 'title',
     width: '150px',
+    ellipsis: true,
     scopedSlots: { customRender: 'postTitle' }
   },
   {
@@ -585,7 +583,8 @@ export default {
       pagination: {
         page: 1,
         size: 10,
-        sort: null
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,
@@ -599,7 +598,7 @@ export default {
       columns,
       selectedRowKeys: [],
       categories: [],
-      selectedPostMetas: [
+      selectedMetas: [
         {
           key: '',
           value: ''
@@ -620,8 +619,7 @@ export default {
         post.statusProperty = this.postStatus[post.status]
         return post
       })
-    },
-    ...mapGetters(['options'])
+    }
   },
   created() {
     this.loadPosts()
@@ -632,11 +630,33 @@ export default {
       this.postSettingVisible = false
     }
   },
+  beforeRouteEnter(to, from, next) {
+    next(vm => {
+      vm.queryParam.page = to.query.page
+      vm.queryParam.size = to.query.size
+      vm.queryParam.sort = to.query.sort
+      vm.queryParam.keyword = to.query.keyword
+      vm.queryParam.categoryId = to.query.categoryId
+      vm.queryParam.status = to.query.status
+    })
+  },
   beforeRouteLeave(to, from, next) {
     if (this.postSettingVisible) {
       this.postSettingVisible = false
     }
     next()
+  },
+  watch: {
+    queryParam: {
+      deep: true,
+      handler: function(newVal, oldVal) {
+        if (newVal) {
+          const params = JSON.parse(JSON.stringify(this.queryParam))
+          const path = this.$router.history.current.path
+          this.$router.push({ path, query: params }).catch(err => err)
+        }
+      }
+    }
   },
   methods: {
     loadPosts() {
@@ -652,7 +672,7 @@ export default {
       })
     },
     loadCategories() {
-      categoryApi.listAll().then(response => {
+      categoryApi.listAll(true).then(response => {
         this.categories = response.data.data
       })
     },
@@ -702,7 +722,7 @@ export default {
     },
     handleEditStatusMore(status) {
       if (this.selectedRowKeys.length <= 0) {
-        this.$message.success('请至少选择一项！')
+        this.$message.info('请至少选择一项！')
         return
       }
       postApi.updateStatusInBatch(this.selectedRowKeys, status).then(response => {
@@ -713,7 +733,7 @@ export default {
     },
     handleDeleteMore() {
       if (this.selectedRowKeys.length <= 0) {
-        this.$message.success('请至少选择一项！')
+        this.$message.info('请至少选择一项！')
         return
       }
       postApi.deleteInBatch(this.selectedRowKeys).then(response => {
@@ -727,7 +747,7 @@ export default {
         this.selectedPost = response.data.data
         this.selectedTagIds = this.selectedPost.tagIds
         this.selectedCategoryIds = this.selectedPost.categoryIds
-        this.selectedPostMetas = this.selectedPost.postMetas
+        this.selectedMetas = this.selectedPost.metas
         this.postSettingVisible = true
       })
     },
@@ -769,8 +789,8 @@ export default {
     onRefreshCategoryIdsFromSetting(categoryIds) {
       this.selectedCategoryIds = categoryIds
     },
-    onRefreshPostMetasFromSetting(postMetas) {
-      this.selectedPostMetas = postMetas
+    onRefreshPostMetasFromSetting(metas) {
+      this.selectedMetas = metas
     }
   }
 }

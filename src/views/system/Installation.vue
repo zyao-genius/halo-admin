@@ -24,7 +24,7 @@
               </a-step>
               <a-step title="博客信息">
               </a-step>
-              <a-step title="数据迁移">
+              <a-step title="数据导入">
               </a-step>
             </a-steps>
             <a-divider dashed />
@@ -94,7 +94,7 @@
                   placeholder="用户密码（8-100位）"
                   v-decorator="[
                     'password',
-                    {rules: [{ required: true, message: '请输入密码（8-100位）' }]}
+                    {rules: [{ required: true, message: '请输入密码（8-100位）' },{ validator: handleValidatePassword }]}
                   ]"
                 >
                   <a-icon
@@ -111,10 +111,10 @@
                 <a-input
                   v-model="installation.confirmPassword"
                   type="password"
-                  placeholder="确定密码"
+                  placeholder="确认密码"
                   v-decorator="[
                     'confirmPassword',
-                    {rules: [{ required: true, message: '请确定密码' }]}
+                    {rules: [{ required: true, message: '请输入确认密码' },{ validator: handleValidateConfirmPassword }]}
                   ]"
                 >
                   <a-icon
@@ -165,24 +165,18 @@
             <div v-show="stepCurrent == 2">
               <a-alert
                 style="margin-bottom: 1rem"
-                message="如果有迁移需求，请点击并选择'迁移文件'"
+                message="如果有数据导入需求，请点击并选择之前导出的文件。需要注意的是，并不是所有数据都会导入，该初始化表单的数据会覆盖你导入的数据。"
                 type="info"
-                class="animated fadeInUp"
               />
-              <Upload
-                :name="migrationUploadName"
+              <FilePondUpload
+                ref="upload"
+                name="file"
                 accept="application/json"
+                label="拖拽或点击选择数据文件，请确认是否为 Halo 后台导出的文件。"
+                :multiple="false"
                 :uploadHandler="handleMigrationUpload"
-                @remove="handleMigrationFileRemove"
-                class="animated fadeIn"
-                :style="{'animation-delay': '0.2s'}"
-              >
-                <p class="ant-upload-drag-icon">
-                  <a-icon type="inbox" />
-                </p>
-                <p class="ant-upload-text">点击选择文件或将文件拖拽到此处</p>
-                <p class="ant-upload-hint">仅支持单个文件上传</p>
-              </Upload>
+                :loadOptions="false"
+              ></FilePondUpload>
             </div>
 
             <a-row
@@ -206,9 +200,10 @@
               </div>
               <a-button
                 v-if="stepCurrent == 2"
-                type="danger"
+                type="primary"
                 icon="upload"
                 @click="handleInstall"
+                :loading="installing"
               >安装</a-button>
             </a-row>
           </a-card>
@@ -220,23 +215,37 @@
 
 <script>
 import adminApi from '@/api/admin'
-import recoveryApi from '@/api/recovery'
+import migrateApi from '@/api/migrate'
 
 export default {
   data() {
     return {
       installation: {},
-      migrationUploadName: 'file',
-      migrationData: null,
       stepCurrent: 0,
-      bloggerForm: this.$form.createForm(this)
+      migrationData: null,
+      bloggerForm: this.$form.createForm(this),
+      installing: false
     }
   },
   created() {
     this.verifyIsInstall()
-    this.installation.url = window.location.protocol + '//' + window.location.host
+    this.$set(this.installation, 'url', window.location.protocol + '//' + window.location.host)
   },
   methods: {
+    handleValidateConfirmPassword(rule, value, callback) {
+      if (this.installation.confirmPassword && this.installation.password !== this.installation.confirmPassword) {
+        // eslint-disable-next-line standard/no-callback-literal
+        callback('确认密码和密码不匹配')
+      }
+      callback()
+    },
+    handleValidatePassword(rule, value, callback) {
+      if (this.installation.password.length < 8) {
+        // eslint-disable-next-line standard/no-callback-literal
+        callback('密码不能低于 8 位')
+      }
+      callback()
+    },
     verifyIsInstall() {
       adminApi.isInstalled().then(response => {
         if (response.data.data) {
@@ -247,8 +256,8 @@ export default {
     handleNextStep(e) {
       e.preventDefault()
       this.bloggerForm.validateFields((error, values) => {
-        console.log('error', error)
-        console.log('Received values of form: ', values)
+        this.$log.debug('error', error)
+        this.$log.debug('Received values of form: ', values)
         if (error != null) {
         } else {
           this.stepCurrent++
@@ -263,22 +272,19 @@ export default {
         resolve()
       })
     },
-    handleMigrationFileRemove(file) {
-      this.$log.debug('Removed file', file)
-      this.$log.debug('Migration file from data', this.migrationData.get(this.migrationUploadName))
-      if (this.migrationData.get(this.migrationUploadName).uid === file.uid) {
-        this.migrationData = null
-        this.migrationFile = null
-      }
-    },
     install() {
-      adminApi.install(this.installation).then(response => {
-        this.$log.debug('Installation response', response)
-        this.$message.success('安装成功！')
-        setTimeout(() => {
-          this.$router.push({ name: 'Login' })
-        }, 300)
-      })
+      adminApi
+        .install(this.installation)
+        .then(response => {
+          this.$log.debug('Installation response', response)
+          this.$message.success('安装成功！')
+          setTimeout(() => {
+            this.$router.push({ name: 'Login' })
+          }, 300)
+        })
+        .finally(() => {
+          this.installing = false
+        })
     },
     handleInstall() {
       const password = this.installation.password
@@ -291,14 +297,19 @@ export default {
         this.$message.error('确认密码和密码不匹配')
         return
       }
-
-      // Handle migration
+      this.installing = true
       if (this.migrationData) {
-        recoveryApi.migrate(this.migrationData).then(response => {
-          this.$log.debug('Migrated successfullly')
-          this.$message.success('数据迁移成功！')
-          this.install()
-        })
+        const hide = this.$message.loading('数据导入中...', 0)
+        migrateApi
+          .migrate(this.migrationData)
+          .then(response => {
+            this.$log.debug('Migrated successfullly')
+            this.$message.success('数据导入成功！')
+            this.install()
+          })
+          .finally(() => {
+            hide()
+          })
       } else {
         this.install()
       }

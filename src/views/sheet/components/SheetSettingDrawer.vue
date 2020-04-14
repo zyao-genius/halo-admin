@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     title="页面设置"
-    :width="isMobile()?'100%':'460'"
+    :width="isMobile()?'100%':'480'"
     placement="right"
     closable
     destroyOnClose
@@ -25,10 +25,10 @@
                 <a-input v-model="selectedSheet.title" />
               </a-form-item>
               <a-form-item
-                label="页面路径："
-                :help="options.blog_url+'/s/'+ (selectedSheet.url ? selectedSheet.url : '{auto_generate}')"
+                label="页面别名："
+                :help="options.blog_url+'/'+options.sheet_prefix+'/'+ (selectedSheet.slug ? selectedSheet.slug : '{slug}')+(options.path_suffix?options.path_suffix:'')"
               >
-                <a-input v-model="selectedSheet.url" />
+                <a-input v-model="selectedSheet.slug" />
               </a-form-item>
               <a-form-item label="发表时间：">
                 <a-date-picker
@@ -49,7 +49,10 @@
                   <a-radio :value="true">关闭</a-radio>
                 </a-radio-group>
               </a-form-item>
-              <a-form-item label="自定义模板：">
+              <a-form-item
+                label="自定义模板："
+                v-if="customTpls.length>0"
+              >
                 <a-select v-model="selectedSheet.template">
                   <a-select-option
                     key=""
@@ -74,7 +77,7 @@
               <a-form-item>
                 <a-input
                   type="textarea"
-                  :autosize="{ minRows: 5 }"
+                  :autoSize="{ minRows: 5 }"
                   v-model="selectedSheet.summary"
                   placeholder="不填写则会自动生成"
                 />
@@ -85,20 +88,20 @@
         <a-divider />
 
         <div :style="{ marginBottom: '16px' }">
-          <h3 class="post-setting-drawer-title">缩略图</h3>
+          <h3 class="post-setting-drawer-title">封面图</h3>
           <div class="post-setting-drawer-item">
             <div class="sheet-thumb">
               <img
                 class="img"
                 :src="selectedSheet.thumbnail || '/images/placeholder.jpg'"
-                @click="()=>this.thumbDrawerVisible = true"
+                @click="thumbDrawerVisible = true"
               >
 
               <a-form layout="vertial">
                 <a-form-item>
                   <a-input
                     v-model="selectedSheet.thumbnail"
-                    placeholder="点击缩略图选择图片，或者输入外部链接"
+                    placeholder="点击封面图选择图片，或者输入外部链接"
                   ></a-input>
                 </a-form-item>
               </a-form>
@@ -111,26 +114,66 @@
             </div>
           </div>
         </div>
+        <a-divider class="divider-transparent" />
+      </div>
+    </a-skeleton>
+    <AttachmentSelectDrawer
+      v-model="thumbDrawerVisible"
+      @listenToSelect="handleSelectSheetThumb"
+      :drawerWidth="480"
+    />
+
+    <a-drawer
+      title="高级设置"
+      :width="isMobile()?'100%':'480'"
+      placement="right"
+      closable
+      destroyOnClose
+      @close="onAdvancedClose"
+      :visible="advancedVisible"
+    >
+      <div class="post-setting-drawer-content">
+        <div :style="{ marginBottom: '16px' }">
+          <h3 class="post-setting-drawer-title">SEO 设置</h3>
+          <div class="post-setting-drawer-item">
+            <a-form layout="vertical">
+              <a-form-item label="自定义关键词：">
+                <a-input
+                  v-model="selectedSheet.metaKeywords"
+                  placeholder="多个关键词以英文逗号隔开"
+                />
+              </a-form-item>
+              <a-form-item label="自定义描述：">
+                <a-input
+                  type="textarea"
+                  :autoSize="{ minRows: 5 }"
+                  v-model="selectedSheet.metaDescription"
+                  placeholder="如不填写，会从页面中自动截取"
+                />
+              </a-form-item>
+            </a-form>
+          </div>
+        </div>
         <a-divider />
         <div :style="{ marginBottom: '16px' }">
           <h3 class="post-setting-drawer-title">元数据</h3>
           <a-form layout="vertical">
             <a-form-item
-              v-for="(sheetMeta, index) in selectedSheetMetas"
+              v-for="(meta, index) in selectedMetas"
               :key="index"
-              :prop="'sheetMeta.' + index + '.value'"
+              :prop="'meta.' + index + '.value'"
             >
               <a-row :gutter="5">
                 <a-col :span="12">
-                  <a-input v-model="sheetMeta.key"><i slot="addonBefore">K</i></a-input>
+                  <a-input v-model="meta.key"><i slot="addonBefore">K</i></a-input>
                 </a-col>
                 <a-col :span="12">
-                  <a-input v-model="sheetMeta.value">
+                  <a-input v-model="meta.value">
                     <i slot="addonBefore">V</i>
                     <a
                       href="javascript:void(0);"
                       slot="addonAfter"
-                      @click.prevent="handleRemoveSheetMeta(sheetMeta)"
+                      @click.prevent="handleRemoveSheetMeta(meta)"
                     >
                       <a-icon type="close" />
                     </a>
@@ -148,23 +191,25 @@
         </div>
         <a-divider class="divider-transparent" />
       </div>
-    </a-skeleton>
-    <AttachmentSelectDrawer
-      v-model="thumbDrawerVisible"
-      @listenToSelect="handleSelectSheetThumb"
-      :drawerWidth="460"
-    />
+    </a-drawer>
+
     <div class="bottom-control">
       <a-button
         style="marginRight: 8px"
+        type="dashed"
+        @click="advancedVisible = true"
+      >高级</a-button>
+      <a-button
+        v-if="saveDraftButton"
+        style="marginRight: 8px"
         @click="handleDraftClick"
-        :disabled="saving"
+        :loading="draftSaving"
       >保存草稿</a-button>
       <a-button
         type="primary"
         @click="handlePublishClick"
-        :disabled="saving"
-      >发布</a-button>
+        :loading="saving"
+      >{{ selectedSheet.id?'保存':'发布' }}</a-button>
     </div>
   </a-drawer>
 </template>
@@ -184,10 +229,12 @@ export default {
   data() {
     return {
       thumbDrawerVisible: false,
+      advancedVisible: false,
       settingLoading: true,
       selectedSheet: this.sheet,
       customTpls: [],
-      saving: false
+      saving: false,
+      draftSaving: false
     }
   },
   props: {
@@ -195,7 +242,7 @@ export default {
       type: Object,
       required: true
     },
-    sheetMetas: {
+    metas: {
       type: Array,
       required: true
     },
@@ -203,6 +250,11 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    saveDraftButton: {
+      type: Boolean,
+      required: false,
+      default: true
     },
     visible: {
       type: Boolean,
@@ -221,7 +273,7 @@ export default {
     selectedSheet(val) {
       this.$emit('onRefreshSheet', val)
     },
-    selectedSheetMetas(val) {
+    selectedMetas(val) {
       this.$emit('onRefreshSheetMetas', val)
     },
     visible: function(newValue, oldValue) {
@@ -232,8 +284,8 @@ export default {
     }
   },
   computed: {
-    selectedSheetMetas() {
-      return this.sheetMetas
+    selectedMetas() {
+      return this.metas
     },
     pickerDefaultValue() {
       if (this.selectedSheet.createTime) {
@@ -252,12 +304,12 @@ export default {
       }, 500)
     },
     loadPresetMetasField() {
-      if (this.sheetMetas.length <= 0) {
+      if (this.metas.length <= 0) {
         themeApi.getActivatedTheme().then(response => {
           const fields = response.data.data.sheetMetaField
           if (fields && fields.length > 0) {
             for (let i = 0, len = fields.length; i < len; i++) {
-              this.selectedSheetMetas.push({
+              this.selectedMetas.push({
                 value: '',
                 key: fields[i]
               })
@@ -280,20 +332,13 @@ export default {
     },
     handlePublishClick() {
       this.selectedSheet.status = 'PUBLISHED'
-      this.saveSheet()
+      this.createOrUpdateSheet()
     },
     handleDraftClick() {
       this.selectedSheet.status = 'DRAFT'
-      this.saveSheet()
+      this.createOrUpdateSheet()
     },
-    saveSheet() {
-      this.createOrUpdateSheet(
-        () => this.$message.success('页面发布成功！'),
-        () => this.$message.success('页面发布成功！'),
-        false
-      )
-    },
-    createOrUpdateSheet(createSuccess, updateSuccess, autoSave) {
+    createOrUpdateSheet() {
       if (!this.selectedSheet.title) {
         this.$notification['error']({
           message: '提示',
@@ -301,33 +346,58 @@ export default {
         })
         return
       }
-      this.selectedSheet.sheetMetas = this.selectedSheetMetas
-      this.saving = true
-      if (this.selectedSheet.id) {
-        sheetApi.update(this.selectedSheet.id, this.selectedSheet, autoSave).then(response => {
-          this.$log.debug('Updated sheet', response.data.data)
-          if (updateSuccess) {
-            updateSuccess()
-            this.saving = false
-            this.$emit('onSaved', true)
-            this.$router.push({ name: 'SheetList' })
-          }
-        })
+      this.selectedSheet.metas = this.selectedMetas
+      if (this.selectedSheet.status === 'DRAFT') {
+        this.draftSaving = true
       } else {
-        sheetApi.create(this.selectedSheet, autoSave).then(response => {
-          this.$log.debug('Created sheet', response.data.data)
-          if (createSuccess) {
-            createSuccess()
-            this.saving = false
+        this.saving = true
+      }
+      if (this.selectedSheet.id) {
+        sheetApi
+          .update(this.selectedSheet.id, this.selectedSheet, false)
+          .then(response => {
+            this.$log.debug('Updated sheet', response.data.data)
+
+            if (this.selectedSheet.status === 'DRAFT') {
+              this.$message.success('草稿保存成功！')
+            } else {
+              this.$message.success('页面更新成功！')
+            }
+
             this.$emit('onSaved', true)
-            this.$router.push({ name: 'SheetList' })
-          }
-          this.selectedSheet = response.data.data
-        })
+            this.$router.push({ name: 'SheetList', query: { activeKey: 'custom' } })
+          })
+          .finally(() => {
+            this.saving = false
+            this.draftSaving = false
+          })
+      } else {
+        sheetApi
+          .create(this.selectedSheet, false)
+          .then(response => {
+            this.$log.debug('Created sheet', response.data.data)
+
+            if (this.selectedSheet.status === 'DRAFT') {
+              this.$message.success('草稿保存成功！')
+            } else {
+              this.$message.success('页面发布成功！')
+            }
+
+            this.$emit('onSaved', true)
+            this.$router.push({ name: 'SheetList', query: { activeKey: 'custom' } })
+            this.selectedSheet = response.data.data
+          })
+          .finally(() => {
+            this.saving = false
+            this.draftSaving = false
+          })
       }
     },
     onClose() {
       this.$emit('close', false)
+    },
+    onAdvancedClose() {
+      this.advancedVisible = false
     },
     onSheetDateChange(value, dateString) {
       this.selectedSheet.createTime = value.valueOf()
@@ -336,13 +406,13 @@ export default {
       this.selectedSheet.createTime = value.valueOf()
     },
     handleRemoveSheetMeta(item) {
-      var index = this.selectedSheetMetas.indexOf(item)
+      var index = this.selectedMetas.indexOf(item)
       if (index !== -1) {
-        this.selectedSheetMetas.splice(index, 1)
+        this.selectedMetas.splice(index, 1)
       }
     },
     handleInsertSheetMeta() {
-      this.selectedSheetMetas.push({
+      this.selectedMetas.push({
         value: '',
         key: ''
       })

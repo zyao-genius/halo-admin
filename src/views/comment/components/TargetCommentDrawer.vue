@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     title="评论列表"
-    :width="isMobile() ? '100%' : '460'"
+    :width="isMobile() ? '100%' : '480'"
     closable
     :visible="visible"
     destroyOnClose
@@ -76,7 +76,7 @@
         <a-form-item>
           <a-input
             type="textarea"
-            :autosize="{ minRows: 8 }"
+            :autoSize="{ minRows: 8 }"
             v-model="replyComment.content"
           />
         </a-form-item>
@@ -101,7 +101,7 @@
         <a-form-item>
           <a-input
             type="textarea"
-            :autosize="{ minRows: 8 }"
+            :autoSize="{ minRows: 8 }"
             v-model="replyComment.content"
           />
         </a-form-item>
@@ -127,7 +127,8 @@ export default {
       pagination: {
         page: 1,
         size: 10,
-        sort: ''
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,

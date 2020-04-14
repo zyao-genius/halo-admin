@@ -13,7 +13,7 @@
                   :md="6"
                   :sm="24"
                 >
-                  <a-form-item label="关键词">
+                  <a-form-item label="关键词：">
                     <a-input
                       v-model="queryParam.keyword"
                       @keyup.enter="handleQuery()"
@@ -24,7 +24,7 @@
                   :md="6"
                   :sm="24"
                 >
-                  <a-form-item label="状态">
+                  <a-form-item label="状态：">
                     <a-select
                       placeholder="请选择状态"
                       v-model="queryParam.type"
@@ -126,7 +126,10 @@
 
                 <a-list-item-meta>
                   <template slot="description">
-                    <p v-html="item.content" class="journal-list-content"></p>
+                    <p
+                      v-html="item.content"
+                      class="journal-list-content"
+                    ></p>
                   </template>
                   <span slot="title">{{ item.createTime | moment }}</span>
                   <a-avatar
@@ -154,6 +157,40 @@
       </a-col>
     </a-row>
 
+    <div style="position: fixed;bottom: 30px;right: 30px;">
+      <a-button
+        type="primary"
+        shape="circle"
+        icon="setting"
+        size="large"
+        @click="optionFormVisible=true"
+      ></a-button>
+    </div>
+    <a-modal
+      v-model="optionFormVisible"
+      title="页面设置"
+      :afterClose="onOptionFormClose"
+    >
+      <template slot="footer">
+        <a-button
+          key="submit"
+          type="primary"
+          @click="handleSaveOptions()"
+        >保存</a-button>
+      </template>
+      <a-form layout="vertical">
+        <a-form-item label="页面标题：" help="* 需要主题进行适配">
+          <a-input v-model="options.journals_title" />
+        </a-form-item>
+        <a-form-item label="每页显示条数：">
+          <a-input
+            type="number"
+            v-model="options.journals_page_size"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 编辑日志弹窗 -->
     <a-modal v-model="visible">
       <template slot="title">
@@ -168,7 +205,7 @@
       <template slot="footer">
         <a-button
           type="dashed"
-          @click="()=>this.attachmentDrawerVisible = true"
+          @click="attachmentDrawerVisible = true"
         >附件库</a-button>
         <a-button
           key="submit"
@@ -180,7 +217,7 @@
         <a-form-item>
           <a-input
             type="textarea"
-            :autosize="{ minRows: 8 }"
+            :autoSize="{ minRows: 8 }"
             v-model="journal.sourceContent"
           />
         </a-form-item>
@@ -211,9 +248,10 @@
 import TargetCommentDrawer from '../../comment/components/TargetCommentDrawer'
 import AttachmentDrawer from '../../attachment/components/AttachmentDrawer'
 import { mixin, mixinDevice } from '@/utils/mixin.js'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import journalApi from '@/api/journal'
 import journalCommentApi from '@/api/journalComment'
+import optionApi from '@/api/option'
 export default {
   mixins: [mixin, mixinDevice],
   components: { TargetCommentDrawer, AttachmentDrawer },
@@ -225,10 +263,12 @@ export default {
       visible: false,
       journalCommentVisible: false,
       attachmentDrawerVisible: false,
+      optionFormVisible: false,
       pagination: {
         page: 1,
         size: 10,
-        sort: null
+        sort: null,
+        total: 1
       },
       queryParam: {
         page: 0,
@@ -241,16 +281,19 @@ export default {
       comments: [],
       journal: {},
       isPublic: true,
-      replyComment: {}
+      replyComment: {},
+      options: []
     }
   },
   created() {
     this.loadJournals()
+    this.loadFormOptions()
   },
   computed: {
     ...mapGetters(['user'])
   },
   methods: {
+    ...mapActions(['loadOptions']),
     loadJournals() {
       this.listLoading = true
       this.queryParam.page = this.pagination.page - 1
@@ -260,6 +303,11 @@ export default {
         this.journals = response.data.data.content
         this.pagination.total = response.data.data.total
         this.listLoading = false
+      })
+    },
+    loadFormOptions() {
+      optionApi.listAll().then(response => {
+        this.options = response.data.data
       })
     },
     handleQuery() {
@@ -332,6 +380,17 @@ export default {
       this.queryParam.keyword = null
       this.queryParam.type = null
       this.handlePaginationChange(1, this.pagination.size)
+    },
+    handleSaveOptions() {
+      optionApi.save(this.options).then(response => {
+        this.loadFormOptions()
+        this.loadOptions()
+        this.$message.success('保存成功！')
+        this.optionFormVisible = false
+      })
+    },
+    onOptionFormClose() {
+      this.optionFormVisible = false
     }
   }
 }
